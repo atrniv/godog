@@ -122,3 +122,66 @@ func Run(contextInitializer func(suite *Suite)) int {
 	}
 	return 0
 }
+
+type RunArgs struct {
+	Format      string
+	Tags        string
+	Paths       []string
+	Concurrency int
+}
+
+// RunWithArgs creates and runs the feature suite.
+// uses contextInitializer to register contexts
+//
+// the concurrency option allows runner to
+// initialize a number of suites to be run
+// separately. Only progress formatter
+// is supported when concurrency level is
+// higher than 1
+//
+// contextInitializer must be able to register
+// the step definitions and event handlers.
+func RunWithArgs(args *RunArgs, contextInitializer func(suite *Suite)) int {
+	var defs, sof bool
+	var tags, format string
+	var concurrency int
+	tags = args.Tags
+	format = args.Format
+	concurrency = args.Concurrency
+
+	if defs {
+		s := &Suite{}
+		contextInitializer(s)
+		s.printStepDefinitions()
+		return 0
+	}
+
+	paths := args.Paths
+
+	if concurrency > 1 && format != "progress" {
+		fatal(fmt.Errorf("when concurrency level is higher than 1, only progress format is supported"))
+	}
+	formatter, err := findFmt(format)
+	fatal(err)
+
+	features, err := parseFeatures(tags, paths)
+	fatal(err)
+
+	r := runner{
+		fmt:           formatter,
+		initializer:   contextInitializer,
+		features:      features,
+		stopOnFailure: sof,
+	}
+
+	var failed bool
+	if concurrency > 1 {
+		failed = r.concurrent(concurrency)
+	} else {
+		failed = r.run()
+	}
+	if failed {
+		return 1
+	}
+	return 0
+}
