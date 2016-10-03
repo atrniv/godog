@@ -127,6 +127,7 @@ type RunArgs struct {
 	Format      string
 	Tags        string
 	Paths       []string
+	Sof         bool
 	Concurrency int
 }
 
@@ -142,7 +143,7 @@ type RunArgs struct {
 // contextInitializer must be able to register
 // the step definitions and event handlers.
 func RunWithArgs(args *RunArgs, contextInitializer func(suite *Suite)) int {
-	var defs, sof bool
+	var defs bool
 	var tags, format string
 	var concurrency int
 	tags = args.Tags
@@ -171,7 +172,7 @@ func RunWithArgs(args *RunArgs, contextInitializer func(suite *Suite)) int {
 		fmt:           formatter,
 		initializer:   contextInitializer,
 		features:      features,
-		stopOnFailure: sof,
+		stopOnFailure: args.Sof,
 	}
 
 	var failed bool
